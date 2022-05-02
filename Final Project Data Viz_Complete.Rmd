@@ -1,0 +1,226 @@
+---
+title: "Final Project"
+output: html_notebook
+---
+
+```{r}
+#Intalling the packages
+
+install.packages("tidyverse")
+install.packages("caTools")
+install.packages("neuralnet")
+install.packages("kernlab")
+```
+
+```{r}
+#Loading the libraries 
+library(tidyverse)
+library(caTools)
+library(neuralnet)
+library(kernlab)
+```
+
+#Data Set 1: Youtube Data 
+
+
+```{r}
+#Reading the CSV
+youtube <- read.csv("youtube.csv", stringsAsFactors = TRUE)
+view(youtube)
+```
+
+```{r}
+#Splitting the data and setting train, validation and test
+set.seed(123)
+youtube$sample <- sample.split(youtube$Subscribers.gained, SplitRatio = .75)
+train_youtube<- subset(youtube, sample ==TRUE)
+test_youtube <- subset(youtube, sample == FALSE)
+```
+## SVM
+#Create a model that predicts the subscriber gain for any video 
+
+
+```{r}
+#Data Transformation: Make Subscribers Gained a factor for classification
+youtube$class <- as.factor(ifelse(youtube$Subscribers.gained <= 100, "Low ",ifelse(youtube$Subscribers.gained <200,"Mid",ifelse(youtube$Subscribers.gained <300,"High","Very High"))))
+view(youtube)
+```
+
+
+```{r}
+#Training the SVM 
+SVMYoutubeModel <- ksvm(Subscribers.gained ~ .,
+                      data = train_youtube,
+                      kernel = "vanilladot")
+
+
+#Prediction
+
+SubscriberPrediction <- predict(SVMYoutubeModel, test_youtube)
+
+#Confusion Matric
+YoutubeConfusionMatrix <- table(SubscriberPrediction, test_youtube$Subscribers.gained,
+                              dnn = c("Prediction", "Actual"))
+SubscriberAccurracy <- sum(diag(YoutubeConfusionMatrix))/sum(YoutubeConfusionMatrix)
+cat("The Accurracy is:",SubscriberAccurracy)
+view(YoutubeConfusionMatrix)
+```
+
+#The Accurracy is: 0.01219512
+
+
+```{r}
+#Plotting the Confusion Matrix
+plot(YoutubeConfusionMatrix)
+```
+
+```{r}
+#Making the Matrix a Data Frame
+youtubematrix<- data.frame(YoutubeConfusionMatrix)
+```
+
+```{r}
+#GGPlot of the Subscribers Confusion Matrix 
+SVMConfusionMatrixGGPlot1 <- ggplot(data =  youtubematrix, mapping = aes(x = Prediction, y = Actual)) + geom_tile(aes(fill= Freq)) + theme(axis.text.x = element_blank() ,
+        axis.ticks.x=element_blank())
+SVMConfusionMatrixGGPlot1
+```
+
+```{r}
+#GGPlot of the Subscribers Confusion Matrix  2 
+SVMConfusionMatrixGGPlot2<- ggplot(data =  youtubematrix, mapping = aes(x = Prediction, y = Actual)) + geom_point(aes(color = Freq)) + theme(axis.text.x = element_blank() ,
+        axis.ticks.x=element_blank())
+SVMConfusionMatrixGGPlot2
+```
+
+## Neural Network
+
+#Predict comments added using all numeric variables in the dataset.
+#Test for normality.
+#Use normalize() function to transform the data if the data is not normal.
+#Create a simple ANN with only a single hidden neuron.
+#Plot the ANN model.
+#Predict using your model.
+#Provide correlation between prediction and actual numbers.
+
+```{r}
+#See distribution
+hist(youtube$Comments.added)
+```
+```{r}
+shapiro.test(test_youtube$Comments.added)
+
+```
+
+# Since  p-value = 6.85e-11 we reject the null hypothesis, and accept the alternative hypothesis. The distribution is considered not normal. We have to normalize
+```{r}
+#Install normalize
+install.packages("normalr") 
+library(normalr)
+```
+
+```{r}
+# Min-Max Scaling
+numeric_youtube <-select(youtube,Views, Comments.added, Subscribers, Impressions, Video.publish.time)
+summary(numeric_youtube$Comments.added)
+```
+
+#Plot the ANN model.
+
+```{r}
+#Training and testing set for normalized data 
+normalized_train <- numeric_youtube[1:15,]
+normalized_test <- numeric_youtube[15:3483,]
+```
+
+
+```{r}
+#ANN
+ann_model <- neuralnet(formula = Comments.added ~ Views, data = numeric_youtube)
+ANNPLOT<- plot(ann_model)
+```
+## Decision Trees 
+
+#Predict if someone will subscribe to the podcast depending on how many views a video has
+
+#Install Packages
+
+```{r}
+install.packages("caret")
+install.packages("e1071")
+install.packages("rpart")
+install.packages("rpart.plot")
+install.packages("party")
+
+```
+
+#Load Libraries
+```{r}
+library(caret)
+library(e1071)
+library(rpart)
+library(rpart.plot)
+library(party)
+```
+
+
+```{r}
+#Split the Data
+
+set.seed(321)
+
+sampleYoutube = sample.split(youtube$Subscribers.gained, SplitRatio = .75)
+train_Youtube_Cart = subset (youtube, sampleYoutube == TRUE)
+test_Youtube_Cart = subset(youtube, sampleYoutube == FALSE)
+
+
+YoutubeRPartModel <- rpart(Subscribers.gained ~ Views, data = train_Youtube_Cart)
+YoutubeRPartModel
+
+# Visualization
+
+DecisionTreePlot <- rpart.plot(YoutubeRPartModel, under = TRUE)
+DecisionTreePlot
+```
+## Naive Bayes
+
+```{r}
+install.packages("naivebayes")
+library(naivebayes)
+```
+
+```{r}
+#Data Transformation: Make Subscribers Gained a factor for classification
+model <- naiveBayes(Subscribers.gained~class, data = youtube)
+predNaiveBayes <- predict(model,youtube)
+TableNaiveBayes<- table(predNaiveBayes)
+view(TableNaiveBayes)
+```
+
+
+```{r}
+#Plot Naive Bayes
+plot(TableNaiveBayes)
+```
+```{r}
+#Making the Matrix a Data Frame
+TableNaiveBayes<- data.frame(TableNaiveBayes)
+```
+
+```{r}
+GGPlotNaiveBayes <- ggplot(data =  TableNaiveBayes, mapping = aes(x = predNaiveBayes, y = Freq)) + 
+  geom_point()+ theme(axis.text.x = element_blank() ,
+        axis.ticks.x=element_blank())
+GGPlotNaiveBayes
+```
+
+#Other GGPlots
+
+```{r}
+#Reading the CSV
+viewerstates <- read.csv("views_by_state.csv", stringsAsFactors = TRUE)
+view(viewerstates)
+```
+
+
+
