@@ -1,7 +1,10 @@
 # Final Project Data Viz Spring 2022
 
 
-Shiny App: https://github.com/ariannalupi/final-project-data-viz
+Shiny App:
+http://ariannalupi.shinyapps.io/Final-Project-App-2
+
+I'm having issued with it. Data is not being saved
 
 ## Data: Youtube Channel Data on the Video Podcast "Lo Que Nadie Te Dijo"
 
